@@ -27,13 +27,6 @@ int is_palindrome_iter(const char *str)
     return 1;
 }
 
-int is_palindrome_rec(const char *str)
-{
-    int l = stringLength(str);
-
-    return _is_palindrome_rec(str, l);
-}
-
 int _is_palindrome_rec(const char *str, int size)
 {
     if (size < 2)
@@ -47,6 +40,13 @@ int _is_palindrome_rec(const char *str, int size)
     }
 
     return _is_palindrome_rec(str + 1, size - 2);
+}
+
+int is_palindrome_rec(const char *str)
+{
+    int l = stringLength(str);
+
+    return _is_palindrome_rec(str, l);
 }
 
 int main()
