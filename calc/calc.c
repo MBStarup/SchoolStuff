@@ -160,8 +160,8 @@ int main()
         {.operands_n = 2, .operator= '/', .operation = &divide, .descrition = "Divide your current result by a number"},
         {.operands_n = 2, .operator= '^', .operation = &power, .descrition = "Raise your current result a power"},
         {.operands_n = 1, .operator= '#', .operation = &squareRoot, .descrition = "Take the square root of your current result"},
-        {.operands_n = 1, .operator= '%', .operation = &negate, .descrition = "Negate your current result"},
-        {.operands_n = 1, .operator= '!', .operation = &reciprocate, .descrition = "Take the reciprocate of your current result"},
+        {.operands_n = 1, .operator= '!', .operation = &negate, .descrition = "Negate your current result"},
+        {.operands_n = 1, .operator= '%', .operation = &reciprocate, .descrition = "Take the reciprocate of your current result"},
         {.operands_n = 4, .operator= 't', .operation = &test, .descrition = "Print your current result and 3 numbers (don't use)"},
     };
 
