@@ -103,7 +103,7 @@ void printYatzyScoreboard(const int *scoreBoard)
             "Yatzy",
         };
 
-    char line[54] = {[0 ... 25] = 45, '|', [27 ... 52] = 45, '\0'}; //This apparently only works on gcc, so complile with that :)
+    char line[54] = {[0 ... 25] = 45, '|', [27 ... 52] = 45, '\0'}; //This apparently only works with gcc I've been told, so complile with that :)
     printf("%s\n", line);
     printf("%25s |\n", "Upper Section");
     printf("%s\n", line);
