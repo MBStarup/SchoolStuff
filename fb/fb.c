@@ -26,6 +26,15 @@ typedef struct hashTableEntry
 
 int _htHashFunc(void *key, int size)
 {
+    return 0;
+    // algorithm fnv-1a is
+    // hash := FNV_offset_basis
+
+    // for each byte_of_data to be hashed do
+    //     hash := hash XOR byte_of_data
+    //     hash := hash × FNV_prime
+
+    // return hash
 }
 
 int _htGetIndex(hashTable table, void *key)
@@ -121,7 +130,7 @@ void *htGet(hashTable table, void *key)
                 return entry->value;
             }
             next = entry->next;
-        } while (next != NULL);
+        } while (next != NULL && (entry = next) /*Funky code: only assign entry to next if next is not NULL*/);
 
         return NULL; /*Didn't find it in the chain*/
     }
@@ -154,7 +163,7 @@ int htInsert(hashTable table, void *key, void *value)
                 return 1;
             }
             next = entry->next;
-        } while (next != NULL);
+        } while (next != NULL && (entry = next) /*Funky code: only assign entry to next if next is not NULL*/);
 
         next = malloc(sizeof(hashTableEntry) + table.keySize + table.valueSize);
         if (next == NULL)
@@ -211,15 +220,27 @@ void htDelete(hashTable table, void *key)
     }
 }
 
-void *htAggregate(hashTable table, void *(*f)(hashTableEntry, hashTableEntry))
+void htForEach(hashTable table, void (*f)(hashTableEntry))
 {
+    for (size_t i = 0; i < table.tableSize; i++)
+    {
+        hashTableEntry *entry = addPtr(table.data, _htGetOffset(table, i));
+        if (entry->key != NULL)
+        {
+            f(*entry);
+        }
+        while (entry->next != NULL)
+        {
+            entry = entry->next;
+            f(*entry);
+        }
+    }
 }
 
 /*Example area*/
-void *htAggregateExamplePrint(hashTableEntry prev, hashTableEntry next)
+void htAggregateExamplePrint(hashTableEntry entry)
 {
-    printf("adsasd");
-    return NULL;
+    printf("%8s : %8d\n", (char *)entry.key, *((int *)entry.value));
 }
 
 void assignString(char *outString, int outSize, const char *inString)
@@ -247,25 +268,41 @@ void htExampleMain()
     assignString(key, 5, "oooo");
     val = 3;
     htInsert(table, &key, &val);
+    printf("\nAdding 03 at oooo\n");
+    htForEach(table, htAggregateExamplePrint);
 
     assignString(key, 5, "test");
     val = 6;
     htInsert(table, &key, &val);
+    printf("\nAdding 06 at test\n");
+    htForEach(table, htAggregateExamplePrint);
 
     assignString(key, 5, "tet");
     val = 1;
     htInsert(table, &key, &val);
+    printf("\nAdding 01 at tet \n");
+    htForEach(table, htAggregateExamplePrint);
 
     assignString(key, 5, "asd");
     val = 90;
     htInsert(table, &key, &val);
+    printf("\nAdding 90 at asd \n");
+    htForEach(table, htAggregateExamplePrint);
 
     assignString(key, 5, "test");
     val = 5;
     htInsert(table, &key, &val);
+    printf("\nAdding 05 at test\n");
+    htForEach(table, htAggregateExamplePrint);
+    // printf("            > %5s: %3.3d\n", key, htGet(table, key));
 
     assignString(key, 5, "tet");
-    // htDelete(table, &key);
+    htDelete(table, &key);
+    printf("\nRemoving  at tet \n");
+    htForEach(table, htAggregateExamplePrint);
+    // printf("            > %5s: %3.3d\n", key, htGet(table, key));
+
+    printf("\nDONE!\n");
 }
 
 #define _BUFFER_SIZE 1024
