@@ -85,7 +85,20 @@ hashTable htInitTable(int tableSize, int keySize, int valueSize)
 
 void htDeleteTable(hashTable table)
 {
-    assert(0 && "Not implemented yet"); // TODO: implement
+    for (size_t i = 0; i < table.tableSize; i++)
+    {
+        hashTableEntry *entry = addPtr(table.data, _htGetOffset(&table, i));
+        hashTableEntry *next = entry->next;
+        while (next != NULL)
+        {
+            hashTableEntry *temp = next;
+            next = next->next;
+            free(temp);
+        }
+    }
+
+    free(table.data);
+    table.count = -1;
 }
 
 void *htGet(const hashTable *table, void *key)
@@ -264,10 +277,17 @@ hashTableEntry *htEnumerate(const hashTable *table)
 
 /* PROGRAM START */
 #define _BUFFER_SIZE 1024
+#define WEEKDAY_SIZE 3
+#define TEAMNAME_SIZE 3
+#define WINNER_POINTS 3
+#define STALEMATE_POINTS 1
+#define PRINT_WIDTH 9
+#define _TO_STRING(v) #v
+#define TO_STRING(v) _TO_STRING(v)
 
 typedef struct team
 {
-    char teamName[3];
+    char teamName[TEAMNAME_SIZE + 1];
     int points;
     int goals;
     int goalsAgainst;
@@ -276,17 +296,25 @@ typedef struct team
 
 typedef struct game
 {
-    char weekDay[4];
+    char weekDay[WEEKDAY_SIZE + 1];
     int day;
     int month;
     int hour;
     int minute;
-    char firstTeamName[4];
-    char secondTeamName[4];
+    char firstTeamName[TEAMNAME_SIZE + 1];
+    char secondTeamName[TEAMNAME_SIZE + 1];
     int firstTeamScore;
     int secondTeamScore;
     int viewers;
 } game;
+
+void initString(char *out, int count)
+{
+    for (size_t i = 0; i < count; i++)
+    {
+        out[i] = '\0';
+    }
+}
 
 void printArr(char **arr, int count)
 {
@@ -321,25 +349,29 @@ int lineCountOfFile(char *fileName)
 
 void parseLine(game *outGame, const char *line)
 {
-    sscanf(line, " %3s %2d/%2d %2d.%2d %3s - %3s %d - %d %d", outGame->weekDay, &outGame->month, &outGame->day, &outGame->hour, &outGame->minute, outGame->firstTeamName, outGame->secondTeamName, &outGame->firstTeamScore, &outGame->secondTeamScore, &outGame->viewers);
+    initString(outGame->firstTeamName, TEAMNAME_SIZE + 1);
+    initString(outGame->secondTeamName, TEAMNAME_SIZE + 1);
+    initString(outGame->weekDay, WEEKDAY_SIZE + 1);
+    sscanf(line, " %" TO_STRING(WEEKDAY_SIZE) "s %2d/%2d %2d.%2d %" TO_STRING(TEAMNAME_SIZE) "s - %" TO_STRING(TEAMNAME_SIZE) "s %d - %d %d", outGame->weekDay, &outGame->month, &outGame->day, &outGame->hour, &outGame->minute, outGame->firstTeamName, outGame->secondTeamName, &outGame->firstTeamScore, &outGame->secondTeamScore, &outGame->viewers);
 }
 
 void printGame(game game)
 {
-    printf(" %3.3s %2.2d/%2.2d %2.2d.%2.2d %3.3s - %3.3s %d - %d %d\n", game.weekDay, game.month, game.month, game.hour, game.minute, game.firstTeamName, game.secondTeamName, game.firstTeamScore, game.secondTeamScore, game.viewers);
+    printf(" %*.*s %2.2d/%2.2d %2.2d.%2.2d %*.*s - %*.*s %d - %d %d\n", WEEKDAY_SIZE, WEEKDAY_SIZE, game.weekDay, game.month, game.month, game.hour, game.minute, TEAMNAME_SIZE, TEAMNAME_SIZE, game.firstTeamName, TEAMNAME_SIZE, TEAMNAME_SIZE, game.secondTeamName, game.firstTeamScore, game.secondTeamScore, game.viewers);
 }
 
 void printTeamLine(team t)
 {
-    printf("%9.9s | %-9d || %9d | %-9d\n", t.teamName, t.points, t.goals, t.goalsAgainst);
+    printf("%*.*s | %-*d || %*d | %-*d\n", PRINT_WIDTH, PRINT_WIDTH, t.teamName, PRINT_WIDTH, t.points, PRINT_WIDTH, t.goals, PRINT_WIDTH, t.goalsAgainst);
 }
 
-team my_htGet(hashTable table, char teamName[4])
+team my_htGet(hashTable table, char teamName[TEAMNAME_SIZE + 1])
 {
     team res = {.points = 0, .goals = 0, .goalsAgainst = 0};
-    char empty[4] = "\0\0\0";
-    memcpy(res.teamName, empty, 4);
+
+    initString(res.teamName, TEAMNAME_SIZE + 1);
     memcpy(res.teamName, teamName, strlen(teamName));
+
     void *temp = htGet(&table, teamName);
     if (temp != NULL)
     {
@@ -391,7 +423,7 @@ int main(void)
     fclose(inputFile);
 
     /*Calculate scores*/
-    hashTable table = htInitTable(25, sizeof(char[4]), sizeof(team));
+    hashTable table = htInitTable(25, sizeof(char) * (TEAMNAME_SIZE + 1), sizeof(team));
     for (size_t i = 0; i < count; i++)
     {
         team first = my_htGet(table, games[i].firstTeamName);
@@ -404,17 +436,21 @@ int main(void)
         second.goalsAgainst += games[i].firstTeamScore;
 
         if (games[i].firstTeamScore > games[i].secondTeamScore)
-            first.points += 3;
+        {
+            first.points += WINNER_POINTS;
+        }
         else if (games[i].firstTeamScore < games[i].secondTeamScore)
-            second.points += 3;
+        {
+            second.points += WINNER_POINTS;
+        }
         else
         {
-            first.points += 1;
-            second.points += 1;
+            first.points += STALEMATE_POINTS;
+            second.points += STALEMATE_POINTS;
         }
 
-        htInsert(&table, first.teamName, &first);
-        htInsert(&table, second.teamName, &second);
+        assert(htInsert(&table, first.teamName, &first) == 1);
+        assert(htInsert(&table, second.teamName, &second) == 1);
     }
 
     /*Sort scores*/
@@ -430,12 +466,13 @@ int main(void)
             e = htEnumerate(NULL);
         }
     }
+    htDeleteTable(table);
 
     qsort(teamArr, table.count, sizeof(team), compareTeams);
 
     /*Print result table*/
-    printf("%9.9s | %-9.9s || %9.9s | %-9.9s\n", "Name", "Points", "Goals", "GoalsVs");
-    printf("%9.9s=|=%9.9s====%9.9s=|=%9.9s\n", "==============", "==============", "==============", "==============");
+    printf("%*.*s | %-*.*s || %*.*s | %-*.*s\n", PRINT_WIDTH, PRINT_WIDTH, "Name", PRINT_WIDTH, PRINT_WIDTH, "Points", PRINT_WIDTH, PRINT_WIDTH, "Goals", PRINT_WIDTH, PRINT_WIDTH, "GoalsVs");
+    printf("%*.*s=|=%*.*s====%*.*s=|=%*.*s\n", PRINT_WIDTH, PRINT_WIDTH, "==============", PRINT_WIDTH, PRINT_WIDTH, "==============", PRINT_WIDTH, PRINT_WIDTH, "==============", PRINT_WIDTH, PRINT_WIDTH, "==============");
     for (size_t i = 0; i < table.count; i++)
     {
         printTeamLine(teamArr[i]);
