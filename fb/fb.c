@@ -1,19 +1,15 @@
+/*Magnus B. Starup; Datalogi; mstaru21@student.aau.dk; Fodbold; 16/12/2021*/
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 
-/*SECTION ht.h*/
-
 /*
-Notes (for me) (more like pet peeves)
-
-Difference between first order entries and secondorder entries, both in handling and allocation, is kinda cringe (maybe just bite the bullet and have each entry alloced on it's own?)
-Are the pointers even worth it? 8 BYTES!?! (We know the location anyways from the sizes, but I guess the shorthand is nice)
-Figure out if the pointers can be made constant as we should NEVER change the pointer if we remove the different treatment of first order entries (right now we use the key pointer as a flag to see if an entry is empty)
+Main can be found at the bottom of the file. :)
 */
 
+/*SECTION ht.h*/
 /*
 Adds bytes amount of bytes to pointer
 */
@@ -45,7 +41,7 @@ typedef struct hashTableEntry
     struct hashTableEntry *next;
 } hashTableEntry;
 
-unsigned int _htHashFunc(void *key, int size)
+static unsigned int _htHashFunc(void *key, int size)
 {
     /*quite probably bad hashing function*/
     /*TODO: Implement a real one*/
@@ -57,16 +53,22 @@ unsigned int _htHashFunc(void *key, int size)
     return res;
 }
 
-unsigned int _htGetIndex(const hashTable *table, void *key)
+/*Returns the "index" for a given key*/
+static unsigned int _htGetIndex(const hashTable *table, void *key)
 {
     return _htHashFunc(key, table->keySize) % table->tableSize;
 }
 
-int _htGetOffset(const hashTable *table, int index)
+/*Returns the byte offset to get to a specific index*/
+static int _htGetOffset(const hashTable *table, int index)
 {
     return index * ((sizeof(hashTableEntry) + table->keySize + table->valueSize));
 }
 
+/*
+Initializes the hashtable
+Remember to clean up with htDeleteTable() when you're done, as the data is dynamically allocated
+*/
 hashTable htInitTable(int tableSize, int keySize, int valueSize)
 {
     void *ptr = malloc(tableSize * (sizeof(hashTableEntry) + keySize + valueSize)); /*Allocate the initial chunk of memory*/
@@ -83,6 +85,11 @@ hashTable htInitTable(int tableSize, int keySize, int valueSize)
     return table;
 }
 
+/*
+Frees up the memory used by the hashtable
+Never use the hashtable after this function
+The count is set to -1
+*/
 void htDeleteTable(hashTable table)
 {
     for (size_t i = 0; i < table.tableSize; i++)
@@ -101,6 +108,9 @@ void htDeleteTable(hashTable table)
     table.count = -1;
 }
 
+/*
+Returns a pointer to the value at the given key in the given hashtable, or NULL if no suitable key was found
+*/
 void *htGet(const hashTable *table, void *key)
 {
     hashTableEntry *entry = addPtr(table->data, _htGetOffset(table, _htGetIndex(table, key)));
@@ -164,6 +174,9 @@ int htInsert(hashTable *table, void *key, void *value)
     }
 }
 
+/*
+Deletes a given entry from the hashtable
+*/
 void htDelete(hashTable *table, void *key)
 {
     hashTableEntry *entry = addPtr(table->data, _htGetOffset(table, _htGetIndex(table, key)));
@@ -213,7 +226,7 @@ void htDelete(hashTable *table, void *key)
 /*
 Works kinda like strtok
 Provide it with a hashtable to get the first entry in that table
-Provide it with a NULL ptr to get the next entry in the last provided hashtable
+Provide it with NULL to get the next entry in the last provided hashtable
 Returns NULL when there are no more entries in the hashtable
 
 please only read the data, don't start changing it with this function, use the appropriate fuctions for that (htInsert, htDelete)
@@ -308,6 +321,9 @@ typedef struct game
     int viewers;
 } game;
 
+/*
+Initializes a string of size count, to be all '\0'
+*/
 void initString(char *out, int count)
 {
     for (size_t i = 0; i < count; i++)
@@ -316,6 +332,9 @@ void initString(char *out, int count)
     }
 }
 
+/*
+Prints an array of strings
+*/
 void printArr(char **arr, int count)
 {
     for (size_t i = 0; i < count; i++)
@@ -324,6 +343,9 @@ void printArr(char **arr, int count)
     }
 }
 
+/*
+Counts the amount of lines in a text file
+*/
 int lineCountOfFile(char *fileName)
 {
     FILE *inputFile;
@@ -347,6 +369,9 @@ int lineCountOfFile(char *fileName)
     return i;
 }
 
+/*
+Parses a string into a game, following the specific format of the file given by the problem
+*/
 void parseLine(game *outGame, const char *line)
 {
     initString(outGame->firstTeamName, TEAMNAME_SIZE + 1);
@@ -355,16 +380,25 @@ void parseLine(game *outGame, const char *line)
     sscanf(line, " %" TO_STRING(WEEKDAY_SIZE) "s %2d/%2d %2d.%2d %" TO_STRING(TEAMNAME_SIZE) "s - %" TO_STRING(TEAMNAME_SIZE) "s %d - %d %d", outGame->weekDay, &outGame->month, &outGame->day, &outGame->hour, &outGame->minute, outGame->firstTeamName, outGame->secondTeamName, &outGame->firstTeamScore, &outGame->secondTeamScore, &outGame->viewers);
 }
 
+/*
+Prints a game to the standard out with nice formatting
+*/
 void printGame(game game)
 {
     printf(" %*.*s %2.2d/%2.2d %2.2d.%2.2d %*.*s - %*.*s %d - %d %d\n", WEEKDAY_SIZE, WEEKDAY_SIZE, game.weekDay, game.month, game.month, game.hour, game.minute, TEAMNAME_SIZE, TEAMNAME_SIZE, game.firstTeamName, TEAMNAME_SIZE, TEAMNAME_SIZE, game.secondTeamName, game.firstTeamScore, game.secondTeamScore, game.viewers);
 }
 
+/*
+Prints a team to the standard out with foratting as part of a table
+*/
 void printTeamLine(team t)
 {
     printf("%*.*s | %-*d || %*d | %-*d\n", PRINT_WIDTH, PRINT_WIDTH, t.teamName, PRINT_WIDTH, t.points, PRINT_WIDTH, t.goals, PRINT_WIDTH, t.goalsAgainst);
 }
 
+/*
+A wrapper aroung htGet() that intializes the team and converts the output for me
+*/
 team my_htGet(hashTable table, char teamName[TEAMNAME_SIZE + 1])
 {
     team res = {.points = 0, .goals = 0, .goalsAgainst = 0};
@@ -381,6 +415,9 @@ team my_htGet(hashTable table, char teamName[TEAMNAME_SIZE + 1])
     return res;
 }
 
+/*
+A comparing function to use when sorting teams
+*/
 int compareTeams(const void *a, const void *b)
 {
     team teamA = *(team *)a;
@@ -410,17 +447,18 @@ int main(void)
     game *games = malloc(count * sizeof(game));
     assert(games != NULL);
 
-    FILE *inputFile = fopen(fileName, "r");
-    assert(inputFile != NULL);
+    { /*Read and parse each line*/
+        FILE *inputFile = fopen(fileName, "r");
+        assert(inputFile != NULL);
 
-    /*Read and parse each line*/
-    char inputLine[_BUFFER_SIZE];
-    for (size_t i = 0; i < count; i++)
-    {
-        fgets(inputLine, _BUFFER_SIZE, inputFile);
-        parseLine(&games[i], inputLine);
+        char inputLine[_BUFFER_SIZE];
+        for (size_t i = 0; i < count; i++)
+        {
+            fgets(inputLine, _BUFFER_SIZE, inputFile);
+            parseLine(&games[i], inputLine);
+        }
+        fclose(inputFile);
     }
-    fclose(inputFile);
 
     /*Calculate scores*/
     hashTable table = htInitTable(25, sizeof(char) * (TEAMNAME_SIZE + 1), sizeof(team));
