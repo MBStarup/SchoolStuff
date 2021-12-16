@@ -2,3 +2,6 @@
 bin/
 # or
 */bin/*
+
+.vscode/
+*/.vscode/
