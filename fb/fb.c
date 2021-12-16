@@ -491,6 +491,8 @@ int main(void)
         assert(htInsert(&table, second.teamName, &second) == 1);
     }
 
+    free(games);
+
     /*Sort scores*/
     /*Hastable => array*/
     team *teamArr = malloc(sizeof(team) * table.count);
@@ -515,4 +517,6 @@ int main(void)
     {
         printTeamLine(teamArr[i]);
     }
+
+    free(teamArr);
 }
